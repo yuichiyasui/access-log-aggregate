@@ -12,6 +12,7 @@ import domain.AccessLogData;
 
 public class AccessLogAggregate {
 
+	// 現状の作りだとデータがない時間帯が3つ続くと値が変になる
 	public static void main(String[] args) {
 
 		try {
@@ -23,6 +24,11 @@ public class AccessLogAggregate {
 			BufferedReader bufferedReader = new BufferedReader(fileReader);
 			String data;
 			List<AccessLogData> logList = new ArrayList<>();
+
+			int year = 2012;
+			int month = 04;
+			int dayOfMonth = 07;
+
 			// テキストデータを各要素ごとに1行ずつリストに格納
 			for (int i = 0; (data = bufferedReader.readLine()) != null; i++) {
 				if (i == 0) {
@@ -48,10 +54,6 @@ public class AccessLogAggregate {
 				logList.add(accessLogData);
 			}
 
-			int year = 2012;
-			int month = 04;
-			int dayOfMonth = 07;
-
 			LocalDateTime limitTime = LocalDateTime.of(year, month, dayOfMonth, 00, 05);
 
 			// 1行目の出力
@@ -65,10 +67,12 @@ public class AccessLogAggregate {
 			int count = 0;
 			int listCounter = 0;
 			int endPoint = logList.size();
-			
+
+			LocalDateTime endTime = LocalDateTime.of(year, month, dayOfMonth + 1, 00, 05);
+
 			for (AccessLogData accessLogData : logList) {
 				listCounter++;
-				
+
 				LocalDateTime logTime = accessLogData.getDateTime();
 
 				if (logTime.isBefore(limitTime)) {
@@ -85,22 +89,34 @@ public class AccessLogAggregate {
 						totalResponceTime += accessLogData.getResponceTime();
 						count++;
 					}
-					
-					if(listCounter == endPoint){
+
+					if (listCounter == endPoint) {
 						// 最終行だった場合の処理
 						averageResponceTime = calcAverageResponceTime(totalResponceTime, count);
-						
+
 						// 結果の1行分の出力
 						DateTimeFormatter f = DateTimeFormatter.ofPattern("HH:mm");
 						LocalDateTime shownTime = limitTime; // 表示用の時刻
 						shownTime = shownTime.minusMinutes(5); // 表示用に5分戻す
 						// 平均応答時間を4桁で半角スペース埋め
 						String shownAverageResponceTime = String.valueOf(averageResponceTime);
-						
+
 						System.out.println(" " + shownTime.format(f) + " |    " + under500 + "    |    " + under2000
-								+ "     |     " + over2001 + "    |   " + String.format("%4s", shownAverageResponceTime));						
+								+ "     |     " + over2001 + "    |   "
+								+ String.format("%4s", shownAverageResponceTime));
+
+						// それぞれの値をリセット
+						under500 = 0;
+						under2000 = 0;
+						over2001 = 0;
+						averageResponceTime = 0;
+						totalResponceTime = 0;
+						count = 0;
+						
+						// 5分進める
+						limitTime = limitTime.plusMinutes(5);
 					}
-					
+
 				} else {
 					// timeより前の処理が終わったら合計を計算
 					averageResponceTime = calcAverageResponceTime(totalResponceTime, count);
@@ -126,21 +142,72 @@ public class AccessLogAggregate {
 					// 5分進める
 					limitTime = limitTime.plusMinutes(5);
 
-					// 新しい時間帯の1行目の計算
-					if (accessLogData.getResponceTime() <= 500) {
-						under500++;
-						totalResponceTime += accessLogData.getResponceTime();
-						count++;
-					} else if (500 <= accessLogData.getResponceTime() && accessLogData.getResponceTime() <= 2000) {
-						under2000++;
-						totalResponceTime += accessLogData.getResponceTime();
-						count++;
+					if (logTime.isBefore(limitTime)) {
+						// 新しい時間帯の1行目の計算
+						if (accessLogData.getResponceTime() <= 500) {
+							under500++;
+							totalResponceTime += accessLogData.getResponceTime();
+							count++;
+						} else if (500 <= accessLogData.getResponceTime() && accessLogData.getResponceTime() <= 2000) {
+							under2000++;
+							totalResponceTime += accessLogData.getResponceTime();
+							count++;
+						} else {
+							over2001++;
+							totalResponceTime += accessLogData.getResponceTime();
+							count++;
+						}
 					} else {
-						over2001++;
-						totalResponceTime += accessLogData.getResponceTime();
-						count++;
+						// 結果の1行分の出力
+						LocalDateTime shownTimeWhenNoData = limitTime; // 表示用の時刻
+						shownTimeWhenNoData = shownTimeWhenNoData.minusMinutes(5); // 表示用に5分戻す
+						// 平均応答時間を4桁で半角スペース埋め
+						String shownAverageResponceTimeWhenNoData = "0";
+
+						System.out.println(" " + shownTimeWhenNoData.format(f) + " |    " + under500 + "    |    "
+								+ under2000 + "     |     " + over2001 + "    |   "
+								+ String.format("%4s", shownAverageResponceTimeWhenNoData));
+
+						// それぞれの値をリセット
+						under500 = 0;
+						under2000 = 0;
+						over2001 = 0;
+						averageResponceTime = 0;
+						totalResponceTime = 0;
+						count = 0;
+
+						// 5分進める
+						limitTime = limitTime.plusMinutes(5);
+
+						// 新しい時間帯の1行目の計算
+						if (accessLogData.getResponceTime() <= 500) {
+							under500++;
+							totalResponceTime += accessLogData.getResponceTime();
+							count++;
+						} else if (500 <= accessLogData.getResponceTime() && accessLogData.getResponceTime() <= 2000) {
+							under2000++;
+							totalResponceTime += accessLogData.getResponceTime();
+							count++;
+						} else {
+							over2001++;
+							totalResponceTime += accessLogData.getResponceTime();
+							count++;
+						}
 					}
 				}
+			}
+			
+			// 最終行以降にまだ時間が残っている場合
+			for(; endTime.isAfter(limitTime); limitTime = limitTime.plusMinutes(5)) {
+				// 結果の1行分の出力
+				DateTimeFormatter f = DateTimeFormatter.ofPattern("HH:mm");
+				LocalDateTime shownTimeWhenNoData = limitTime; // 表示用の時刻
+				shownTimeWhenNoData = shownTimeWhenNoData.minusMinutes(5); // 表示用に5分戻す
+				// 平均応答時間を4桁で半角スペース埋め
+				String shownAverageResponceTimeWhenNoData = "0";
+				System.out.println(" " + shownTimeWhenNoData.format(f) + " |    " + under500 + "    |    "
+						+ under2000 + "     |     " + over2001 + "    |   "
+						+ String.format("%4s", shownAverageResponceTimeWhenNoData));
 			}
 
 			// 最後にファイルを閉じてリソースを開放する
@@ -152,7 +219,7 @@ public class AccessLogAggregate {
 			System.out.println(e);
 		}
 	}
-
+	
 	/**
 	 * 平均応答時間の計算用メソッド.
 	 * 
