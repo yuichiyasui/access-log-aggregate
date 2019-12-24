@@ -1,6 +1,7 @@
 package domain;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * コンソールに表示する分析結果の1行分のデータ.
@@ -17,12 +18,24 @@ public class ResultData {
 	private int under2000;
 	/**	応答時間:2001以上のデータ数 */
 	private int over2001;
-	/**	平均応答時間 */
-	private int averageResponceTime;
 	/**	合計応答時間 */
 	private int totalResponceTime;
 	/**	要素数 */
 	private int count;
+	
+	public ResultData() {
+		super();
+	}
+	public ResultData(LocalDateTime outputDateTime, int under500, int under2000, int over2001, int averageResponceTime,
+			int totalResponceTime, int count) {
+		super();
+		this.outputDateTime = outputDateTime;
+		this.under500 = under500;
+		this.under2000 = under2000;
+		this.over2001 = over2001;
+		this.totalResponceTime = totalResponceTime;
+		this.count = count;
+	}
 	public LocalDateTime getOutputDateTime() {
 		return outputDateTime;
 	}
@@ -55,7 +68,6 @@ public class ResultData {
 		}
 	}
 	public void setAverageResponceTime(int averageResponceTime) {
-		this.averageResponceTime = averageResponceTime;
 	}
 	public int getTotalResponceTime() {
 		return totalResponceTime;
@@ -71,9 +83,10 @@ public class ResultData {
 	}
 	@Override
 	public String toString() {
-		return "ResultData [outputDateTime=" + outputDateTime + ", under500=" + under500 + ", under2000=" + under2000
-				+ ", over2001=" + over2001 + ", averageResponceTime=" + averageResponceTime + ", totalResponceTime="
-				+ totalResponceTime + ", count=" + count + "]";
+		DateTimeFormatter resultF = DateTimeFormatter.ofPattern("HH:mm");					
+			return " " + getOutputDateTime().minusMinutes(5).format(resultF) + " |    " + getUnder500()
+					+ "    |    " + getUnder2000() + "     |     " + getOver2001()
+					+ "    |   " + String.format("%4s", getAverageResponceTime());
 	}
 	
 }
